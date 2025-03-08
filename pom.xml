@@ -19,10 +19,12 @@
     <mustache.compiler.version>0.9.1</mustache.compiler.version>
     <jcommander.version>1.48</jcommander.version>
     <json-simple.version>1.1.1</json-simple.version>
+    <slf4j.version>1.7.36</slf4j.version>
 
     <!-- Plugin versions -->
     <maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
     <maven-jar-plugin.version>3.2.0</maven-jar-plugin.version>
+    <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
 
     <!-- Java version -->
     <java.version>21</java.version>
@@ -30,6 +32,11 @@
 
   <dependencies>
     <!-- Removed Capsule dependencies as they're no longer needed -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
+    </dependency>
     <dependency>
       <groupId>log4j</groupId>
       <artifactId>log4j</artifactId>
@@ -99,6 +106,12 @@
             </manifest>
           </archive>
         </configuration>
+      </plugin>
+      <!-- Add Surefire plugin to execute tests -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven-surefire-plugin.version}</version>
       </plugin>
     </plugins>
   </build>
