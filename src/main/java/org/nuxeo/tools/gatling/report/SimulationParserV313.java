@@ -21,6 +21,7 @@ import java.io.FileInputStream;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
@@ -251,36 +252,134 @@ public class SimulationParserV313 extends SimulationParser {
         }
     }
 
-    /**
-     * Read data into buffer and process it
-     * Modified to accept ReadableByteChannel instead of only FileChannel
-     * 
-     * @return true if processing should continue, false if end of file reached and
-     *         buffer empty
-     */
     private boolean readAndProcessBuffer(ReadableByteChannel channel, ByteBuffer buffer, SimulationContext context)
             throws IOException {
+        // Read more data into the buffer
         int bytesRead = channel.read(buffer);
 
         if (bytesRead > 0) {
             log.trace("Read {} bytes from file", bytesRead);
         }
 
-        // If we have no more data to read and buffer is empty, we're done
-        if (bytesRead <= 0 && buffer.position() == 0) {
-            return false;
-        }
-
-        buffer.flip();
-
-        try {
-            processBufferContent(buffer, context);
-        } finally {
-            buffer.compact();
-        }
-
-        return true;
+    // If we have no more data to read and buffer is empty, we're done
+    if (bytesRead <= 0 && buffer.position() == 0) {
+        return false;
     }
+
+    buffer.flip();
+
+    try {
+        // Process as many complete records as we can
+        int initialPosition = buffer.position();
+        int lastSafePosition = initialPosition;
+
+        while (buffer.remaining() > 0) {
+            // Save current position before attempting to process a record
+            int recordStart = buffer.position();
+
+            // Check if we have enough data for at least a record type
+            if (buffer.remaining() < 1) {
+                break;
+            }
+
+            // Read record type without advancing position
+            byte recordType = buffer.get(recordStart);
+
+            // Check if we have a complete record
+            if (isCompleteRecord(recordType, buffer)) {
+                // Now we can advance past the record type byte
+                buffer.get();
+
+                try {
+                    // Process the record
+                    dispatchRecordByType(recordType, buffer, context);
+                    totalRecords++;
+
+                    // Update last safe position after successfully processing a record
+                    lastSafePosition = buffer.position();
+                } catch (BufferUnderflowException e) {
+                    // If we hit an underflow, the record is incomplete
+                    log.debug("Incomplete record of type {} detected, waiting for more data", recordType);
+                    buffer.position(recordStart);
+                    break;
+                } catch (Exception e) {
+                    handleRecordProcessingError(recordType, buffer, e);
+                    // Move to next record after error
+                    lastSafePosition = buffer.position();
+                }
+            } else {
+                // Not enough data for this record, rewind to before the record type
+                buffer.position(recordStart);
+                break;
+            }
+        }
+
+        // Reset to last safe position to retain any partial records
+        buffer.position(lastSafePosition);
+    } finally {
+        // Compact the buffer to prepare for next read, keeping any unprocessed data
+        buffer.compact();
+    }
+
+    return true;
+}
+
+/**
+ * Checks if a complete record of the given type can be read from the buffer
+ * without modifying buffer position.
+ */
+private boolean isCompleteRecord(byte recordType, ByteBuffer buffer) {
+    int position = buffer.position();
+
+    try {
+        // Skip past the record type byte that was already read
+        position++;
+
+        // Check if we have enough bytes for this record type's metadata
+        switch (recordType) {
+            case RUN_RECORD:
+                // Need at least the string length for gatlingVersion
+                if (buffer.remaining() < 5)
+                    return false; // 1 byte already read + 4 for int
+                int versionLength = buffer.getInt(position);
+                position += 4 + versionLength + 1; // int + string bytes + coder byte
+
+                // Check for simulationClassName
+                if (position + 4 > buffer.limit())
+                    return false;
+                int classNameLength = buffer.getInt(position);
+                position += 4 + classNameLength + 1; // int + string bytes + coder byte
+
+                // Check for start timestamp (8 bytes)
+                return position + 8 <= buffer.limit();
+
+            case USER_RECORD:
+                // scenarioIndex(4) + isStart(1) + timestamp(4)
+                return buffer.remaining() >= 10; // 1 byte already read + 9
+
+            case REQUEST_RECORD:
+                // Start with groupCount
+                if (buffer.remaining() < 5)
+                    return false; // 1 byte already read + 4 for groupCount
+                int groupCount = buffer.getInt(position);
+
+                // We can't fully validate without reading all the dynamic content
+                // So this is a best-effort check for the static parts
+                return buffer.remaining() >= 10 + groupCount * 4; // Basic structure minimum size
+
+            case GROUP_RECORD:
+                return buffer.remaining() >= 18; // 1 byte already read + 17
+
+            case ERROR_RECORD:
+                return buffer.remaining() >= 9; // 1 byte already read + 8
+
+            default:
+                return false;
+        }
+    } catch (Exception e) {
+        return false;
+    }
+}
 
     /**
      * Determines if a file is gzipped by checking its magic number.
@@ -340,10 +439,6 @@ public class SimulationParserV313 extends SimulationParser {
 
         // Clear buffer and try next chunk
         buffer.position(buffer.limit());
-
-        throw new IOException(String.format(
-                "Failed to process record type %d at position %d in simulation log: %s",
-                recordType, buffer.position(), e.getMessage()), e);
     }
 
     /**
