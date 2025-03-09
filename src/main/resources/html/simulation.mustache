@@ -62,17 +62,19 @@
     }
     
     .summary-card {
-      flex: 1;
+      flex: 1 0 auto;
       min-width: 300px;
+      max-width: 600px;
     }
     
     .chart-card {
-      flex: 2;
-      min-width: 400px;
+      flex: 2 1 500px;
+      min-width: 500px;
     }
     
     table {
       width: 100%;
+      table-layout: auto;
       border-collapse: collapse;
     }
     
@@ -84,10 +86,12 @@
     th {
       text-align: left;
       font-weight: bold;
+      white-space: nowrap;
     }
     
     td {
       text-align: right;
+      word-break: break-word;
     }
     
     .stats-highlight {
@@ -162,7 +166,7 @@
       <table id="summaryTab">
         <tr>
           <th>Simulation</th>
-          <td class="stats-highlight">{{simStat.simulation}}</td>
+          <td class="stats-highlight" style="word-wrap: break-word; max-width: 400px;">{{simStat.simulation}}</td>
         </tr>
         <tr>
           <th>Launched</th>
