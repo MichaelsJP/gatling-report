@@ -44,6 +44,8 @@ public class TestParser {
 
     protected static final String SIM_V3_10_GZ = "simulation-v3.10.log.gz";
 
+    protected static final String SIM_V3_13 = "simulation-v3.13.log";
+
     @Test
     public void parseSimpleSimulationVersion21() throws Exception {
         SimulationContext ret = ParserFactory.getParser(getResourceFile(SIM_SMALL_V2_1)).parse();
@@ -131,6 +133,15 @@ public class TestParser {
         // System.out.println(ret);
         Assert.assertEquals("sim50bench", ret.getSimulationName());
         Assert.assertEquals(16029, ret.getSimStat().getCount());
+        Assert.assertTrue(ret.toString().contains("_all"));
+    }
+
+    @Test
+    public void parseSimulationVersion313() throws Exception {
+        SimulationContext ret = ParserFactory.getParser(getResourceFile(SIM_V3_13)).parse();
+        // System.out.println(ret);
+        Assert.assertEquals("org.heigit.ors.benchmark.IsochronesLoadTest", ret.getSimulationName());
+        Assert.assertEquals(3, ret.getSimStat().getCount());
         Assert.assertTrue(ret.toString().contains("_all"));
     }
 
