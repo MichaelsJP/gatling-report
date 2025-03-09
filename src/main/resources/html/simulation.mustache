@@ -1,69 +1,250 @@
 <!DOCTYPE html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gatling Report - {{simStat.simulation}}</title>
   {{#scripts}}
     <script src="{{.}}"></script>
   {{/scripts}}
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
   <style media="screen" type="text/css">
-    th {text-align:left}
-    td {text-align:right}
-    #responseAllDiv {float: left}
-    #countDiv {float: left}
-    #responseDiv {clear:both}
-    #image {float: left}
-
+    :root {
+      --primary-color: #4c78a8;
+      --secondary-color: #72b7b2;
+      --success-color: #54a24b;
+      --error-color: #e45756;
+      --bg-color: #f9f9f9;
+      --text-color: #333;
+    }
+    
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    h1, h2, h3 {
+      margin-top: 0;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .flex-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .summary-card {
+      flex: 1;
+      min-width: 300px;
+    }
+    
+    .chart-card {
+      flex: 2;
+      min-width: 400px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    th, td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    th {
+      text-align: left;
+      font-weight: bold;
+    }
+    
+    td {
+      text-align: right;
+    }
+    
+    .stats-highlight {
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+    
+    .section-title {
+      border-bottom: 2px solid var(--primary-color);
+      padding-bottom: 10px;
+      margin-top: 30px;
+      color: var(--primary-color);
+    }
+    
+    #monitoring {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+    }
+    
+    #monitoring .image {
+      max-width: 100%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+    }
+    
+    #monitoring .image:hover {
+      transform: scale(1.05);
+    }
+    
+    #monitoring img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    
+    .charts-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    
+    #responseAllDiv, #countDiv {
+      flex: 1;
+      min-width: 300px;
+    }
+    
+    #responseDiv {
+      width: 100%;
+    }
+    
+    @media (max-width: 768px) {
+      .flex-container {
+        flex-direction: column;
+      }
+    }
   </style>
 </head>
+<body>
 
-<h1>{{simStat.startDate}} - Gatling report for simulation {{simStat.simulation}}</h1>
+<div class="container">
+  <header>
+    <h1>Gatling Performance Report</h1>
+    <p>Simulation: <strong>{{simStat.simulation}}</strong></p>
+    <p>Date: {{simStat.startDate}}</p>
+  </header>
 
-<div id="summaryDiv">
-  <table id="summaryTab">
-    <tr>
-      <th>Simulation</th>
-      <td>{{simStat.simulation}}</td>
-    </tr>
-    <tr>
-      <th>Launched</th>
-      <td>{{simStat.startDate}}</td>
-    </tr>
-    <tr>
-      <th>Duration (s)</th>
-      <td>{{simStat.getDuration}}</td>
-    </tr>
-    <tr>
-      <th>Throughput requests/s</th>
-      <td>{{simStat.throughput}}</td>
-    </tr>
-    <tr>
-      <th>Max concurrent users</th>
-      <td>{{simStat.maxUsers}}</td>
-    </tr>
-  </table>
+  <div class="flex-container">
+    <div class="card summary-card">
+      <h2 class="section-title">Summary</h2>
+      <table id="summaryTab">
+        <tr>
+          <th>Simulation</th>
+          <td class="stats-highlight">{{simStat.scenario}}</td>
+        </tr>
+        <tr>
+          <th>Launched</th>
+          <td>{{simStat.startDate}}</td>
+        </tr>
+        <tr>
+          <th>Duration</th>
+          <td><span class="stats-highlight">{{simStat.getDuration}}</span> seconds</td>
+        </tr>
+        <tr>
+          <th>Throughput</th>
+          <td><span class="stats-highlight">{{simStat.throughput}}</span> req/sec</td>
+        </tr>
+        <tr>
+          <th>Max Concurrent Users</th>
+          <td class="stats-highlight">{{simStat.maxUsers}}</td>
+        </tr>
+        <tr>
+          <th>Success Rate</th>
+          <td>
+            <span class="stats-highlight">
+              {{#simStat.totalCount}}{{#simStat.successCount}}
+                {{#js}}Math.round(({{simStat.successCount}} / {{simStat.totalCount}}) * 100){{/js}}%
+              {{/simStat.successCount}}{{/simStat.totalCount}}
+            </span>
+          </td>
+        </tr>
+      </table>
+    </div>
+    
+    <div class="card chart-card">
+      <h2 class="section-title">Request Results</h2>
+      <div id="countDiv"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="section-title">Response Time Overview</h2>
+    <div class="charts-container">
+      <div id="responseAllDiv"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="section-title">Response Time per Request</h2>
+    <div id="responseDiv"></div>
+  </div>
+
+  {{#simStat.graphite.images.length}}
+  <div class="card">
+    <h2 class="section-title">System Monitoring</h2>
+    <div id="monitoring">
+      {{#simStat.graphite.images}}
+        <a class="image" href="{{url}}" title="{{title}}"><img src="{{filename}}" alt="{{title}}"/></a>
+      {{/simStat.graphite.images}}
+    </div>
+  </div>
+  {{/simStat.graphite.images.length}}
 </div>
 
-<div id="responseAllDiv"></div>
-<div id="countDiv"></div>
-<div id="responseDiv"></div>
-<div id="monitoring">
-  {{#simStat.graphite.images}}
-    <a class="image" href="{{url}}" title="{{title}}"><img src="{{filename}}" alt="{{title}}"/></a>
-  {{/simStat.graphite.images}}
-</div>
 <script>
 var dataCount = [{
   values: [{{simStat.successCount}}, {{simStat.errorCount}}],
   labels: ['Success: {{simStat.successCount}}', 'Error: {{simStat.errorCount}}'],
   type: 'pie',
   marker: {
-    //colors: ['rgb(56,75,126)', 'rgb(255,67,67)']
-  }
+    colors: ['var(--success-color)', 'var(--error-color)']
+  },
+  textinfo: 'label+percent',
+  hoverinfo: 'label+value+percent'
 }];
+
 var layoutCount = {
   height: 300,
   width: 400,
-  title: 'Requests count',
+  title: 'Requests Status Distribution',
+  margin: {t: 50, b: 20, l: 20, r: 20},
+  paper_bgcolor: 'rgba(0,0,0,0)',
+  plot_bgcolor: 'rgba(0,0,0,0)'
 };
-Plotly.newPlot('countDiv', dataCount, layoutCount);
+
+Plotly.newPlot('countDiv', dataCount, layoutCount, {responsive: true});
 
 var dataAll = [
   {
@@ -74,43 +255,83 @@ var dataAll = [
     pointpos: -1.8,
     boxmean: 'sd',
     type: 'box',
-    marker:{
-      size:2,
-      opacity:0.6
-    }
+    marker: {
+      size: 4,
+      opacity: 0.8,
+      color: '#1f77b4'  // Bright blue for better visibility
+    },
+    line: {
+      color: '#ff7f0e',  // Bright orange for contrast
+      width: 2
+    },
+    fillcolor: 'rgba(31, 119, 180, 0.1)'  // Light blue fill
   }
 ];
+
 var layoutAll = {
-  height: 500,
-  width: 500,
+  height: 600,
+  width: 800,
   yaxis: {
-    title: 'Time ms',
-    type: 'log'
+    title: 'Response Time (ms)',
+    type: 'log',
+    gridcolor: '#cccccc',  // Darker grid for better contrast
+    titlefont: {
+      size: 16,
+      color: '#333333'  // Darker text color
+    },
+    tickfont: {
+      size: 12,
+      color: '#333333'  // Darker tick labels
+    },
+    zerolinecolor: '#999999'  // Darker zero line
+  },
+  xaxis: {
+    showticklabels: false
+  },
+  title: {
+    text: 'Overall Response Time Distribution',
+    font: {
+      size: 20,
+      color: 'var(--primary-color)'
+    }
   },
   showlegend: true,
-  xaxis: {
-      showticklabels: false
+  legend: {
+    font: {
+      size: 14
+    }
   },
-  title: 'Response time all requests'
+  margin: {
+    l: 80,
+    r: 40,
+    t: 100,
+    b: 60
+  },
+  plot_bgcolor: 'rgba(0,0,0,0)',
+  paper_bgcolor: 'rgba(0,0,0,0)'
 };
-Plotly.newPlot('responseAllDiv', dataAll, layoutAll);
+
+Plotly.newPlot('responseAllDiv', dataAll, layoutAll, {responsive: true});
 
 var layoutResponse = {
   height: 600,
   width: 1200,
   yaxis: {
-    title: 'Time ms',
+    title: 'Response Time (ms)',
     type: 'log',
-    zeroline: true
+    zeroline: true,
+    gridcolor: '#e1e1e1'
   },
   xaxis: {
     showticklabels: false
   },
-  title: 'Response time per request',
+  title: 'Response Time by Request Type',
   showlegend: true,
   legend: {
     traceorder: 'reversed'
-  }
+  },
+  plot_bgcolor: 'rgba(0,0,0,0)',
+  paper_bgcolor: 'rgba(0,0,0,0)'
 };
 
 var dataResponse = [];
@@ -120,20 +341,18 @@ var data{{indice}} = {
     boxpoints: {{{boxpoints}}},
     jitter: 0.2,
     pointpos: -5,
-    fillcolor: 'cls',
     name: '{{request}} ({{average}}ms)',
     boxmean: 'sd',
     type: 'box',
     marker:{
        size: 3,
-       opacity:0.7
+       opacity: 0.7
     }
-
-  };
+};
 dataResponse.push(data{{indice}});
 {{/requests}}
-Plotly.newPlot('responseDiv', dataResponse, layoutResponse);
-
-
+Plotly.newPlot('responseDiv', dataResponse, layoutResponse, {responsive: true});
 
 </script>
+</body>
+</html>
