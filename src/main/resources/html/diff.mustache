@@ -1,103 +1,258 @@
 <!DOCTYPE html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gatling Diff Report - {{ref.scenario}}</title>
   {{#scripts}}
     <script src="{{.}}"></script>
   {{/scripts}}
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
   <style media="screen" type="text/css">
-    th {text-align:left}
-    td {text-align:right}
-    td.win {background-color: chartreuse;}
-    td.loose {background-color: darksalmon;}
-
+    :root {
+      --primary-color: #4c78a8;
+      --secondary-color: #72b7b2;
+      --success-color: #54a24b;
+      --error-color: #e45756;
+      --bg-color: #f9f9f9;
+      --text-color: #333;
+    }
+    
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    h1, h2, h3 {
+      margin-top: 0;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .section-title {
+      border-bottom: 2px solid var(--primary-color);
+      padding-bottom: 10px;
+      margin-top: 30px;
+      color: var(--primary-color);
+    }
+    
+    table {
+      width: 100%;
+      table-layout: auto;
+      border-collapse: collapse;
+    }
+    
+    th, td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    th {
+      text-align: left;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    
+    td {
+      text-align: right;
+      word-break: break-word;
+    }
+    
+    td.win {
+      background-color: rgba(84, 162, 75, 0.2);
+      color: var(--success-color);
+      font-weight: bold;
+    }
+    
+    td.loose {
+      background-color: rgba(228, 87, 86, 0.2);
+      color: var(--error-color);
+      font-weight: bold;
+    }
+    
+    .chart-container {
+      margin-top: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .monitoring-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    
+    .monitoring-grid img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+    }
+    
+    .monitoring-grid img:hover {
+      transform: scale(1.05);
+    }
+    
+    .reference-column, .challenger-column {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .legend {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 15px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+    }
+    
+    .reference-color {
+      background-color: #1f77b4;
+    }
+    
+    .challenger-color {
+      background-color: #ff7f0e;
+    }
+    
+    @media (max-width: 768px) {
+      .monitoring-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
+<body>
+<div class="container">
+  <header>
+    <h1>Gatling Performance Comparison</h1>
+    <p>Simulation: <strong>{{ref.simStat.simulation}}</strong></p>
+    <p>Date: {{ref.simStat.startDate}}</p>
+  </header>
 
-<h1>{{ref.scenario}} Diff report</h1>
-<div id="summaryDiv">
-  <table id="summaryTab">
-    <tr>
-      <td></td>
-      <th>Reference</th>
-      <th>Challenger</th>
-      <th></th>
-    </tr>
-    <tr>
-      <th>Date</th>
-      <td>{{ref.simStat.startDate}}</td>
-      <td>{{challenger.simStat.startDate}}</td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>Simulation</th>
-      <td>{{ref.simStat.scenario}}</td>
-      <td>{{challenger.simStat.scenario}}</td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>Duration (s)</th>
-      <td>{{ref.simStat.duration}}</td>
-      <td>{{challenger.simStat.getDuration}}</td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>Throughput requests/s</th>
-      <td>{{ref.simStat.throughput}}</td>
-      <td>{{challenger.simStat.throughput}}</td>
-      <td class="{{rpsClass}}">{{rpsPercent}} %</td>
-    </tr>
-    <tr>
-      <th>Average response time ms</th>
-      <td>{{ref.simStat.average}}</td>
-      <td>{{challenger.simStat.average}}</td>
-      <td class="{{avgClass}}">{{avgPercent}} %</td>
-    </tr>
-    <tr>
-      <th>Requests</th>
-      <td>{{ref.simStat.count}}</td>
-      <td>{{challenger.simStat.count}}</td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>Error(s)</th>
-      <td>{{ref.simStat.errorCount}}</td>
-      <td>{{challenger.simStat.errorCount}}</td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>Max concurrent users</th>
-      <td>{{ref.simStat.maxUsers}}</td>
-      <td>{{challenger.simStat.maxUsers}}</td>
-      <td></td>
-    </tr>
-  </table>
+  <div class="card">
+    <h2 class="section-title">Summary Comparison</h2>
+    
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color reference-color"></div>
+        <span>Reference: {{ref.simStat.startDate}}</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color challenger-color"></div>
+        <span>Challenger: {{challenger.simStat.startDate}}</span>
+      </div>
+    </div>
+    
+    <table id="summaryTab">
+      <tr>
+        <td></td>
+        <th>Reference</th>
+        <th>Challenger</th>
+        <th>Difference</th>
+      </tr>
+      <tr>
+        <th>Date</th>
+        <td>{{ref.simStat.startDate}}</td>
+        <td>{{challenger.simStat.startDate}}</td>
+        <td></td>
+      </tr>
+      <tr>
+        <th>Simulation</th>
+        <td>{{ref.simStat.simulation}}</td>
+        <td>{{challenger.simStat.simulation}}</td>
+        <td></td>
+      </tr>
+      <tr>
+        <th>Duration (s)</th>
+        <td>{{ref.simStat.duration}}</td>
+        <td>{{challenger.simStat.getDuration}}</td>
+        <td></td>
+      </tr>
+      <tr>
+        <th>Throughput (req/s)</th>
+        <td>{{ref.simStat.throughput}}</td>
+        <td>{{challenger.simStat.throughput}}</td>
+        <td class="{{rpsClass}}">{{rpsPercent}}%</td>
+      </tr>
+      <tr>
+        <th>Average Response Time (ms)</th>
+        <td>{{ref.simStat.average}}</td>
+        <td>{{challenger.simStat.average}}</td>
+        <td class="{{avgClass}}">{{avgPercent}}%</td>
+      </tr>
+      <tr>
+        <th>Requests</th>
+        <td>{{ref.simStat.count}}</td>
+        <td>{{challenger.simStat.count}}</td>
+        <td></td>
+      </tr>
+      <tr>
+        <th>Error(s)</th>
+        <td>{{ref.simStat.errorCount}}</td>
+        <td>{{challenger.simStat.errorCount}}</td>
+        <td></td>
+      </tr>
+      <tr>
+        <th>Max Concurrent Users</th>
+        <td>{{ref.simStat.maxUsers}}</td>
+        <td>{{challenger.simStat.maxUsers}}</td>
+        <td></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2 class="section-title">Response Time Comparison</h2>
+    <div class="chart-container" id="responseAllDiv"></div>
+  </div>
+
+  {{#getDiffRequests}}
+  <div class="card">
+    <h2 class="section-title">{{refR.request}}</h2>
+    <div class="chart-container" id="response{{refR.indice}}Div"></div>
+  </div>
+  {{/getDiffRequests}}
+
 </div>
-
-<div id="responseAllDiv"></div>
-{{#getDiffRequests}}
-  <div id="response{{refR.indice}}Div"></div>
-{{/getDiffRequests}}
-
-
-<div id="monitoring">
-  <table>
-    <tr>
-      <td>
-        {{#ref.simStat.graphite.images}}
-          <a class="image" href="{{url}}" title="{{title}}"><img src="{{filename}}" alt="{{title}}"/></a>
-        {{/ref.simStat.graphite.images}}
-      </td>
-      <td>
-        {{#challenger.simStat.graphite.images}}
-          <a class="image" href="{{url}}" title="{{title}}"><img src="{{filename}}" alt="{{title}}"/></a>
-        {{/challenger.simStat.graphite.images}}
-      </td>
-    </tr>
-  </table>
-</div>
-
 
 <script>
-
 var dataAll = [
   {
     y: {{ref.simStat.durations}},
@@ -107,10 +262,16 @@ var dataAll = [
     pointpos: -1.8,
     boxmean: 'sd',
     type: 'box',
-    marker:{
-      size:2,
-      opacity:0.6
-    }
+    marker: {
+      size: 4,
+      opacity: 0.8,
+      color: '#1f77b4'
+    },
+    line: {
+      color: '#1f77b4',
+      width: 2
+    },
+    fillcolor: 'rgba(31, 119, 180, 0.1)'
   },
   {
     y: {{challenger.simStat.durations}},
@@ -120,26 +281,62 @@ var dataAll = [
     pointpos: -1.8,
     boxmean: 'sd',
     type: 'box',
-    marker:{
-      size:2,
-      opacity:0.6
-    }
+    marker: {
+      size: 4,
+      opacity: 0.8,
+      color: '#ff7f0e'
+    },
+    line: {
+      color: '#ff7f0e',
+      width: 2
+    },
+    fillcolor: 'rgba(255, 127, 14, 0.1)'
   }
 ];
+
 var layoutAll = {
   height: 500,
   width: 900,
   yaxis: {
-    title: 'Time ms',
-    type: 'log'
+    title: 'Response Time (ms)',
+    type: 'log',
+    gridcolor: '#cccccc',
+    titlefont: {
+      size: 16,
+      color: '#333333'
+    },
+    tickfont: {
+      size: 12,
+      color: '#333333'
+    }
+  },
+  xaxis: {
+    showticklabels: false
+  },
+  title: {
+    text: 'Overall Response Time Distribution',
+    font: {
+      size: 18,
+      color: 'var(--primary-color)'
+    }
   },
   showlegend: true,
-  xaxis: {
-      showticklabels: false
+  legend: {
+    font: {
+      size: 14
+    }
   },
-  title: 'Response time all requests'
+  margin: {
+    l: 80,
+    r: 40,
+    t: 80,
+    b: 60
+  },
+  plot_bgcolor: 'rgba(0,0,0,0)',
+  paper_bgcolor: 'rgba(0,0,0,0)'
 };
-Plotly.newPlot('responseAllDiv', dataAll, layoutAll);
+
+Plotly.newPlot('responseAllDiv', dataAll, layoutAll, {responsive: true});
 
 {{#getDiffRequests}}
 var data{{refR.indice}} = [
@@ -151,10 +348,16 @@ var data{{refR.indice}} = [
     pointpos: -1.8,
     boxmean: 'sd',
     type: 'box',
-    marker:{
-      size:2,
-      opacity:0.6
-    }
+    marker: {
+      size: 4,
+      opacity: 0.8,
+      color: '#1f77b4'
+    },
+    line: {
+      color: '#1f77b4',
+      width: 2
+    },
+    fillcolor: 'rgba(31, 119, 180, 0.1)'
   },
   {
     y: {{challengerR.durations}},
@@ -164,27 +367,63 @@ var data{{refR.indice}} = [
     pointpos: -1.8,
     boxmean: 'sd',
     type: 'box',
-    marker:{
-      size:2,
-      opacity:0.6
-    }
+    marker: {
+      size: 4,
+      opacity: 0.8,
+      color: '#ff7f0e'
+    },
+    line: {
+      color: '#ff7f0e',
+      width: 2
+    },
+    fillcolor: 'rgba(255, 127, 14, 0.1)'
   }
 ];
+
 var layout{{refR.indice}} = {
   height: 500,
   width: 900,
   yaxis: {
-    title: 'Time ms',
-    type: 'log'
+    title: 'Response Time (ms)',
+    type: 'log',
+    gridcolor: '#cccccc',
+    titlefont: {
+      size: 16,
+      color: '#333333'
+    },
+    tickfont: {
+      size: 12,
+      color: '#333333'
+    }
+  },
+  xaxis: {
+    showticklabels: false
+  },
+  title: {
+    text: '{{refR.request}}',
+    font: {
+      size: 18,
+      color: 'var(--primary-color)'
+    }
   },
   showlegend: true,
-  xaxis: {
-      showticklabels: false
+  legend: {
+    font: {
+      size: 14
+    }
   },
-  title: '{{refR.request}}'
+  margin: {
+    l: 80,
+    r: 40,
+    t: 80,
+    b: 60
+  },
+  plot_bgcolor: 'rgba(0,0,0,0)',
+  paper_bgcolor: 'rgba(0,0,0,0)'
 };
-Plotly.newPlot('response{{refR.indice}}Div', data{{refR.indice}}, layout{{refR.indice}});
+
+Plotly.newPlot('response{{refR.indice}}Div', data{{refR.indice}}, layout{{refR.indice}}, {responsive: true});
 {{/getDiffRequests}}
-
-
 </script>
+</body>
+</html>
