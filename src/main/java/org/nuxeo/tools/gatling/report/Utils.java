@@ -32,10 +32,13 @@ import java.net.PasswordAuthentication;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.zip.GZIPInputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Utils {
 
     protected static final String GZ = "gz";
+    private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
     public static void setBasicAuth(String user, String password) {
         if (user == null) {
