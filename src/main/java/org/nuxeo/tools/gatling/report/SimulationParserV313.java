@@ -17,15 +17,21 @@
 package org.nuxeo.tools.gatling.report;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +65,7 @@ public class SimulationParserV313 extends SimulationParser {
     private int groupRecords = 0;
 
     // Store scenario to user mapping
-    final protected Map<String, String> userScenario = new HashMap<>();
+    protected final Map<String, String> userScenario = new HashMap<>();
 
     // Store simulation metadata
     protected String simulationClassName;
@@ -82,12 +88,7 @@ public class SimulationParserV313 extends SimulationParser {
 
     boolean isBinaryFormat(ByteBuffer buffer) {
         // Check if first byte is RUN_RECORD (0) and next bytes match expected pattern
-        if (buffer.get(0) != RUN_RECORD) {
-            return false;
-        }
-
-        // Additional validation...
-        return true;
+        return buffer.get(0) == RUN_RECORD;
     }
 
     boolean isValidRecord(byte recordType, ByteBuffer buffer) {
@@ -131,161 +132,16 @@ public class SimulationParserV313 extends SimulationParser {
         log.info("Starting to parse binary simulation log: {}", file.getAbsolutePath());
         SimulationContext ret = new SimulationContext(file.getAbsolutePath(), apdexT);
 
-        try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "r");
-                FileChannel channel = randomAccessFile.getChannel()) {
-            log.debug("File size: {} bytes", channel.size());
+        // Check if the file is gzipped
+        boolean isGzipped = isGzippedFile(file);
+        log.info("Detected {} file format", isGzipped ? "gzipped" : "standard");
 
-            ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
-            log.debug("Allocated buffer of size: {} bytes", BUFFER_SIZE);
-            assert isBinaryFormat(buffer);
-
-            // First, fill the buffer with enough data to process the RUN record
-            int bytesRead = channel.read(buffer);
-            if (bytesRead <= 0) {
-                throw new IOException("Empty file or failed to read simulation log");
-            }
-            log.debug("Initial read: {} bytes", bytesRead);
-
-            buffer.flip();
-
-            // Check if first byte indicates a RUN record
-            if (buffer.remaining() > 0 && buffer.get(0) == RUN_RECORD) {
-                // Skip the record type byte
-                buffer.get();
-                log.debug("Processing RUN record at start of file");
-
-                try {
-                    processRunRecord(buffer);
-                    totalRecords++;
-
-                    // Set simulation information in the context
-                    ret.setSimulationName(simulationClassName);
-                    ret.setStart(simulationStart);
-                    if (scenarioNames.length > 0) {
-                        ret.setScenarioName(scenarioNames[0]);
-                    }
-
-                    log.info("Parsed simulation: {}, scenarios: {}, start: {}",
-                            simulationClassName, scenarioNames.length, simulationStart);
-                    for (int i = 0; i < scenarioNames.length; i++) {
-                        log.debug("Scenario {}: {}", i, scenarioNames[i]);
-                    }
-                } catch (IOException e) {
-                    log.error("Error processing RUN record: {}", e.getMessage(), e);
-                    // If we can't parse the RUN record, we likely can't parse the rest either
-                    throw e;
-                }
-            } else {
-                log.error("Invalid file format: first byte is {} (expected {})",
-                        buffer.remaining() > 0 ? buffer.get(0) : "none", RUN_RECORD);
-                throw new IOException("File does not start with a RUN record or is not a valid binary simulation log");
-            }
-
-            buffer.compact();
-
-            // Process the rest of the records
-            log.debug("Processing remaining records");
-            while ((bytesRead = channel.read(buffer)) > 0 || buffer.position() > 0) {
-                if (bytesRead > 0) {
-                    log.trace("Read {} bytes from file", bytesRead);
-                }
-                buffer.flip();
-
-                while (buffer.remaining() > 0) {
-                    // Make sure we have at least a byte for the record type
-                    if (buffer.remaining() < 1) {
-                        log.trace("Buffer has less than 1 byte remaining, breaking");
-                        break;
-                    }
-
-                    byte recordType = buffer.get();
-                    totalRecords++;
-
-                    try {
-                        if (!isValidRecord(recordType, buffer)) {
-                            invalidRecordCount++;
-                            log.warn("Invalid record structure for type {}: insufficient data ({} bytes remaining)",
-                                    recordType, buffer.remaining());
-
-                            // Then in your parse method, add:
-                            if (!isValidRecord(recordType, buffer)) {
-                                invalidRecordCount++;
-                                log.warn("Invalid record structure for type {}: insufficient data ({} bytes remaining)",
-                                        recordType, buffer.remaining());
-
-                                // If too many invalid records, try more aggressive recovery
-                                if (invalidRecordCount > MAX_INVALID_RECORDS) {
-                                    log.error(
-                                            "Too many invalid records ({}), possible file corruption or format mismatch",
-                                            invalidRecordCount);
-                                    throw new IOException("Too many invalid records, aborting parse");
-                                }
-
-                                // Skip this record
-                                buffer.position(buffer.limit());
-                                continue;
-                            }
-
-                            // If too many invalid records, try more aggressive recovery
-                            if (invalidRecordCount > MAX_INVALID_RECORDS) {
-                                log.error("Too many invalid records ({}), possible file corruption or format mismatch",
-                                        invalidRecordCount);
-                                throw new IOException("Too many invalid records, aborting parse");
-                            }
-                        }
-                        switch (recordType) {
-                            case USER_RECORD:
-                                userRecords++;
-                                log.trace("Processing USER record #{}", userRecords);
-                                processUserRecord(buffer, ret);
-                                break;
-                            case REQUEST_RECORD:
-                                requestRecords++;
-                                log.trace("Processing REQUEST record #{}", requestRecords);
-                                processRequestRecord(buffer, ret);
-                                break;
-                            case ERROR_RECORD:
-                                errorRecords++;
-                                log.trace("Processing ERROR record #{}", errorRecords);
-                                processErrorRecord(buffer);
-                                break;
-                            case GROUP_RECORD:
-                                groupRecords++;
-                                log.trace("Processing GROUP record #{}", groupRecords);
-                                processGroupRecord(buffer);
-                                break;
-                            case RUN_RECORD:
-                                // We already processed the RUN record at the beginning
-                                log.warn("Unexpected additional RUN record found");
-                                throw new IOException("Unexpected additional RUN record found");
-                            default:
-                                // Data misalignment detected
-                                if (recordType < 0) {
-                                    // Most likely a cached string reference, buffer is misaligned
-                                    log.warn(
-                                            "Buffer misalignment: Found string cache reference {} instead of record type",
-                                            recordType);
-                                } else {
-                                    log.warn("Unknown record type: {}, likely buffer misalignment", recordType);
-                                }
-
-                                // Try to recover by skipping to the next likely record boundary
-                                buffer.position(buffer.limit());
-                                break;
-                        }
-                    } catch (Exception e) {
-                        log.error("Error processing record type {}: {}", recordType, e.getMessage());
-                        if (log.isDebugEnabled()) {
-                            log.debug("Stack trace:", e);
-                        }
-                        // Clear buffer and try next chunk
-                        buffer.position(buffer.limit());
-                        break;
-                    }
-                }
-
-                buffer.compact();
-            }
+        if (isGzipped) {
+            // Handle gzipped file with InputStream
+            parseGzippedFile(ret);
+        } else {
+            // Handle regular file with RandomAccessFile
+            parseRegularFile(ret);
         }
 
         log.info("Completed parsing {} records: {} USER, {} REQUEST, {} ERROR, {} GROUP",
@@ -295,6 +151,277 @@ public class SimulationParserV313 extends SimulationParser {
         ret.computeStat();
 
         return ret;
+    }
+
+    /**
+     * Process a regular non-compressed file
+     */
+    private void parseRegularFile(SimulationContext context) throws IOException {
+        try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "r");
+                FileChannel channel = randomAccessFile.getChannel()) {
+
+            log.debug("File size: {} bytes", channel.size());
+            ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+
+            // Read and process the RUN record first
+            processRunRecord(channel, buffer, context);
+
+            // Process all remaining records
+            processRemainingRecords(channel, buffer, context);
+        }
+    }
+
+    /**
+     * Process a gzipped file
+     */
+    private void parseGzippedFile(SimulationContext context) throws IOException {
+        try (FileInputStream fis = new FileInputStream(file);
+                BufferedInputStream bis = new BufferedInputStream(fis);
+                GZIPInputStream gzis = new GZIPInputStream(bis);
+                ReadableByteChannel channel = Channels.newChannel(gzis)) {
+
+            log.debug("Processing gzipped file");
+            ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+
+            // Process the RUN record first
+            processRunRecord(channel, buffer, context);
+
+            // Process all remaining records
+            processRemainingRecords(channel, buffer, context);
+        }
+    }
+
+    /**
+     * Process the RUN record at the beginning of the file
+     * Modified to accept ReadableByteChannel instead of only FileChannel
+     */
+    private void processRunRecord(ReadableByteChannel channel, ByteBuffer buffer, SimulationContext context)
+            throws IOException {
+        int bytesRead = channel.read(buffer);
+        if (bytesRead <= 0) {
+            throw new IOException("Empty file or failed to read simulation log");
+        }
+        log.debug("Initial read: {} bytes", bytesRead);
+
+        buffer.flip();
+
+        // Check if first byte indicates a RUN record
+        if (buffer.remaining() > 0 && buffer.get(0) == RUN_RECORD) {
+            // Skip the record type byte
+            buffer.get();
+            log.debug("Processing RUN record at start of file");
+
+            try {
+                processRunRecord(buffer);
+                totalRecords++;
+
+                // Set simulation information in the context
+                context.setSimulationName(simulationClassName);
+                context.setStart(simulationStart);
+                if (scenarioNames.length > 0) {
+                    context.setScenarioName(scenarioNames[0]);
+                }
+
+                log.info("Parsed simulation: {}, scenarios: {}, start: {}",
+                        simulationClassName, scenarioNames.length, simulationStart);
+                for (int i = 0; i < scenarioNames.length; i++) {
+                    log.debug("Scenario {}: {}", i, scenarioNames[i]);
+                }
+            } catch (IOException e) {
+                throw new IOException("Failed to process RUN record in simulation log: " + e.getMessage(), e);
+            }
+        } else {
+            log.error("Invalid file format: first byte is {} (expected {})",
+                    buffer.remaining() > 0 ? buffer.get(0) : "none", RUN_RECORD);
+            throw new IOException("File does not start with a RUN record or is not a valid binary simulation log");
+        }
+
+        buffer.compact();
+    }
+
+    /**
+     * Process all records after the initial RUN record
+     * Modified to accept ReadableByteChannel instead of only FileChannel
+     */
+    private void processRemainingRecords(ReadableByteChannel channel, ByteBuffer buffer, SimulationContext context)
+            throws IOException {
+        log.debug("Processing remaining records");
+
+        while (readAndProcessBuffer(channel, buffer, context)) {
+            // Continue reading and processing until no more data
+        }
+    }
+
+    /**
+     * Read data into buffer and process it
+     * Modified to accept ReadableByteChannel instead of only FileChannel
+     * 
+     * @return true if processing should continue, false if end of file reached and
+     *         buffer empty
+     */
+    private boolean readAndProcessBuffer(ReadableByteChannel channel, ByteBuffer buffer, SimulationContext context)
+            throws IOException {
+        int bytesRead = channel.read(buffer);
+
+        if (bytesRead > 0) {
+            log.trace("Read {} bytes from file", bytesRead);
+        }
+
+        // If we have no more data to read and buffer is empty, we're done
+        if (bytesRead <= 0 && buffer.position() == 0) {
+            return false;
+        }
+
+        buffer.flip();
+
+        try {
+            processBufferContent(buffer, context);
+        } finally {
+            buffer.compact();
+        }
+
+        return true;
+    }
+
+    /**
+     * Determines if a file is gzipped by checking its magic number.
+     */
+    private static boolean isGzippedFile(File file) throws IOException {
+        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+            if (raf.length() < 2) {
+                return false;
+            }
+
+            // Check for gzip magic number (0x1F 0x8B)
+            int byte1 = raf.read();
+            int byte2 = raf.read();
+            return byte1 == 0x1F && byte2 == 0x8B;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Process all records available in the current buffer
+     */
+    private void processBufferContent(ByteBuffer buffer, SimulationContext context) throws IOException {
+        while (buffer.remaining() > 0) {
+            // Check if we have enough data for at least a record type
+            if (buffer.remaining() < 1) {
+                break;
+            }
+
+            // Read record type
+            byte recordType = buffer.get();
+            totalRecords++;
+
+            try {
+                processRecordWithValidation(recordType, buffer, context);
+            } catch (Exception e) {
+                handleRecordProcessingError(recordType, buffer, e);
+                // Skip to next buffer after an error by setting buffer position to limit
+                // This effectively ends the loop without using another break
+                buffer.position(buffer.limit());
+            }
+        }
+    }
+
+    /**
+     * Handle errors that occur while processing a record
+     */
+    private void handleRecordProcessingError(byte recordType, ByteBuffer buffer, Exception e) throws IOException {
+        if (e instanceof IOException ioException) {
+            throw ioException;
+        }
+
+        log.error("Error processing record type {}: {}", recordType, e.getMessage());
+        if (log.isDebugEnabled()) {
+            log.debug("Stack trace:", e);
+        }
+
+        // Clear buffer and try next chunk
+        buffer.position(buffer.limit());
+
+        throw new IOException(String.format(
+                "Failed to process record type %d at position %d in simulation log: %s",
+                recordType, buffer.position(), e.getMessage()), e);
+    }
+
+    /**
+     * Process a single record with validation checks
+     */
+    private void processRecordWithValidation(byte recordType, ByteBuffer buffer, SimulationContext context)
+            throws IOException {
+        if (!isValidRecord(recordType, buffer)) {
+            invalidRecordCount++;
+            log.warn("Invalid record structure for type {}: insufficient data ({} bytes remaining)",
+                    recordType, buffer.remaining());
+
+            // If too many invalid records, try more aggressive recovery
+            if (invalidRecordCount > MAX_INVALID_RECORDS) {
+                log.error("Too many invalid records ({}), possible file corruption or format mismatch",
+                        invalidRecordCount);
+                throw new IOException("Too many invalid records, aborting parse");
+            }
+
+            // Skip this record
+            buffer.position(buffer.limit());
+            return;
+        }
+
+        dispatchRecordByType(recordType, buffer, context);
+    }
+
+    /**
+     * Dispatch record processing based on record type
+     */
+    private void dispatchRecordByType(byte recordType, ByteBuffer buffer, SimulationContext context)
+            throws IOException {
+        switch (recordType) {
+            case USER_RECORD:
+                userRecords++;
+                log.trace("Processing USER record #{}", userRecords);
+                processUserRecord(buffer, context);
+                break;
+            case REQUEST_RECORD:
+                requestRecords++;
+                log.trace("Processing REQUEST record #{}", requestRecords);
+                processRequestRecord(buffer, context);
+                break;
+            case ERROR_RECORD:
+                errorRecords++;
+                log.trace("Processing ERROR record #{}", errorRecords);
+                processErrorRecord(buffer);
+                break;
+            case GROUP_RECORD:
+                groupRecords++;
+                log.trace("Processing GROUP record #{}", groupRecords);
+                processGroupRecord(buffer);
+                break;
+            case RUN_RECORD:
+                // We already processed the RUN record at the beginning
+                log.warn("Unexpected additional RUN record found");
+                throw new IOException("Unexpected additional RUN record found");
+            default:
+                // Data misalignment detected
+                handleMisalignedData(recordType, buffer);
+                break;
+        }
+    }
+
+    /**
+     * Handle misaligned data in the buffer
+     */
+    private void handleMisalignedData(byte recordType, ByteBuffer buffer) {
+        if (recordType < 0) {
+            // Most likely a cached string reference, buffer is misaligned
+            log.warn("Buffer misalignment: Found string cache reference {} instead of record type", recordType);
+        } else {
+            log.warn("Unknown record type: {}, likely buffer misalignment", recordType);
+        }
+
+        // Try to recover by skipping to the next likely record boundary
+        buffer.position(buffer.limit());
     }
 
     /**
@@ -442,12 +569,14 @@ public class SimulationParserV313 extends SimulationParser {
         int cumulatedResponseTime = buffer.getInt(); // cumulatedResponseTime
         byte success = buffer.get(); // success
 
-        log.trace("GROUP: names={}, start={}, end={}, cumulated={}, success={}",
-                String.join(">", groupNames),
-                startTimeStamp,
-                endTimeStamp,
-                cumulatedResponseTime,
-                success == 1);
+        if (log.isTraceEnabled()) {
+            log.trace("GROUP: names={}, start={}, end={}, cumulated={}, success={}",
+                    String.join(">", groupNames),
+                    startTimeStamp,
+                    endTimeStamp,
+                    cumulatedResponseTime,
+                    success == 1);
+        }
 
         // We don't need to do anything with groups for now
     }

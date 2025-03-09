@@ -46,10 +46,11 @@ public class TestParser {
 
     protected static final String SIM_V3_13 = "simulation-v3.13.log";
 
+    protected static final String SIM_V3_13_GZ = "simulation-v3.13.log.gz";
+
     @Test
     public void parseSimpleSimulationVersion21() throws Exception {
         SimulationContext ret = ParserFactory.getParser(getResourceFile(SIM_SMALL_V2_1)).parse();
-        // System.out.println(ret);
         Assert.assertEquals("sim80reindexall", ret.getSimulationName());
         Assert.assertEquals(2, ret.getSimStat().getCount());
         Assert.assertTrue(ret.toString().contains("_all"));
@@ -58,7 +59,6 @@ public class TestParser {
     @Test
     public void parseCompressedSimulation() throws Exception {
         SimulationContext ret = ParserFactory.getParser(getResourceFile(SIM_GZ)).parse();
-        // System.out.println(ret);
         Assert.assertEquals("sim50bench", ret.getSimulationName());
         Assert.assertEquals(2464, ret.getSimStat().getCount());
         Assert.assertTrue(ret.toString().contains("_all"));
@@ -67,7 +67,6 @@ public class TestParser {
     @Test
     public void parseSimulationVersion23() throws Exception {
         SimulationContext ret = ParserFactory.getParser(getResourceFile(SIM_V2_3)).parse();
-        // System.out.println(ret);
         Assert.assertEquals("sim20createdocuments", ret.getSimulationName());
         Assert.assertEquals(1000, ret.getSimStat().getCount());
         Assert.assertTrue(ret.toString().contains("_all"));
@@ -76,7 +75,6 @@ public class TestParser {
     @Test
     public void parseSimpleSimulationVersion3() throws Exception {
         SimulationContext ret = ParserFactory.getParser(getResourceFile(SIM_SMALL_V3)).parse();
-        // System.out.println(ret);
         Assert.assertEquals("sim80reindexall", ret.getSimulationName());
         Assert.assertEquals(2, ret.getSimStat().getCount());
         Assert.assertTrue(ret.toString().contains("_all"));
@@ -85,7 +83,6 @@ public class TestParser {
     @Test
     public void parseSimpleSimulationVersion32Small() throws Exception {
         SimulationContext ret = ParserFactory.getParser(getResourceFile(SIM_SMALL_V3_2)).parse();
-        // System.out.println(ret);
         Assert.assertEquals("sim80reindexall", ret.getSimulationName());
         Assert.assertEquals(2, ret.getSimStat().getCount());
         Assert.assertTrue(ret.toString().contains("_all"));
@@ -94,7 +91,6 @@ public class TestParser {
     @Test
     public void parseSimpleSimulationVersion33Small() throws Exception {
         SimulationContext ret = ParserFactory.getParser(getResourceFile(SIM_SMALL_V3_3)).parse();
-        // System.out.println(ret);
         Assert.assertEquals("sim80reindexall", ret.getSimulationName());
         Assert.assertEquals(2, ret.getSimStat().getCount());
         Assert.assertTrue(ret.toString().contains("_all"));
@@ -103,7 +99,6 @@ public class TestParser {
     @Test
     public void parseSimpleSimulationVersion32() throws Exception {
         SimulationContext ret = ParserFactory.getParser(getResourceFile(SIM_V3_2_GZ)).parse();
-        //System.out.println(ret);
         Assert.assertEquals("sim50bench", ret.getSimulationName());
         Assert.assertEquals(16095, ret.getSimStat().getCount());
         Assert.assertTrue(ret.toString().contains("_all"));
@@ -112,7 +107,6 @@ public class TestParser {
     @Test
     public void parseSimpleSimulationVersion34Small() throws Exception {
         SimulationContext ret = ParserFactory.getParser(getResourceFile(SIM_SMALL_V3_4)).parse();
-        //System.out.println(ret);
         Assert.assertEquals("testsimulationspec", ret.getSimulationName());
         Assert.assertEquals(31, ret.getSimStat().getCount());
         Assert.assertTrue(ret.toString().contains("_all"));
@@ -121,7 +115,6 @@ public class TestParser {
     @Test
     public void parseSimpleSimulationVersion35() throws Exception {
         SimulationContext ret = ParserFactory.getParser(getResourceFile(SIM_V3_5_GZ)).parse();
-        // System.out.println(ret);
         Assert.assertEquals("sim50bench", ret.getSimulationName());
         Assert.assertEquals(16095, ret.getSimStat().getCount());
         Assert.assertTrue(ret.toString().contains("_all"));
@@ -130,7 +123,6 @@ public class TestParser {
     @Test
     public void parseSimpleSimulationVersion310() throws Exception {
         SimulationContext ret = ParserFactory.getParser(getResourceFile(SIM_V3_10_GZ)).parse();
-        // System.out.println(ret);
         Assert.assertEquals("sim50bench", ret.getSimulationName());
         Assert.assertEquals(16029, ret.getSimStat().getCount());
         Assert.assertTrue(ret.toString().contains("_all"));
@@ -139,7 +131,14 @@ public class TestParser {
     @Test
     public void parseSimulationVersion313() throws Exception {
         SimulationContext ret = ParserFactory.getParser(getResourceFile(SIM_V3_13)).parse();
-        // System.out.println(ret);
+        Assert.assertEquals("org.heigit.ors.benchmark.IsochronesLoadTest", ret.getSimulationName());
+        Assert.assertEquals(3, ret.getSimStat().getCount());
+        Assert.assertTrue(ret.toString().contains("_all"));
+    }
+
+    @Test
+    public void parseSimpleSimulationVersion313GZ() throws Exception {
+        SimulationContext ret = ParserFactory.getParser(getResourceFile(SIM_V3_13_GZ)).parse();
         Assert.assertEquals("org.heigit.ors.benchmark.IsochronesLoadTest", ret.getSimulationName());
         Assert.assertEquals(3, ret.getSimStat().getCount());
         Assert.assertTrue(ret.toString().contains("_all"));

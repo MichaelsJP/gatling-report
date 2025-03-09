@@ -128,7 +128,8 @@ public class SimulationContext {
     }
 
     class CountMax {
-        int current = 0, maximum = 0;
+        int current = 0;
+        int maximum = 0;
 
         public void incr() {
             current += 1;

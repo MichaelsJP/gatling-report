@@ -33,18 +33,29 @@ import org.junit.Test;
 public class TestReport {
 
     protected static final String SIM_GZ = "simulation-1.log.gz";
+    protected static final String SIM_GZ_313 = "simulation-v3.13.log.gz";
 
     protected static final List<String> SIMS_GZ = Arrays.asList("simulation.log.1.gz", "simulation.log.2.gz",
-            "simulation.log.3.gz", "simulation.log.4.gz");
+            "simulation.log.3.gz", "simulation.log.4.gz", "simulation-v3.13.log.gz");
 
     @Test
     public void generateSimulationReport() throws Exception {
         List<SimulationContext> stats = Collections.singletonList(ParserFactory.getParser(getResourceFile(SIM_GZ)).parse());
         Writer writer = new StringWriter();
         String reportPath = new Report(stats).setWriter(writer).create();
-        // System.out.println(writer);
         Assert.assertTrue(reportPath.endsWith("index.html"));
         Assert.assertTrue(writer.toString().contains("simulation sim50bench"));
+    }
+
+    @Test
+    public void generateSimulationReport313() throws Exception {
+
+        List<SimulationContext> stats = Collections
+                .singletonList(ParserFactory.getParser(getResourceFile(SIM_GZ_313)).parse());
+        Writer writer = new StringWriter();
+        String reportPath = new Report(stats).setWriter(writer).create();
+        Assert.assertTrue(reportPath.endsWith("index.html"));
+        Assert.assertTrue(writer.toString().contains("org.heigit.ors.benchmark.IsochronesLoadTest"));
     }
 
     @Test
@@ -59,7 +70,6 @@ public class TestReport {
         });
         Writer writer = new StringWriter();
         String reportPath = new Report(stats).setWriter(writer).create();
-        // System.out.println(writer);
         Assert.assertTrue(reportPath.endsWith("index.html"));
         Assert.assertTrue(writer.toString().contains("Trend report"));
     }
