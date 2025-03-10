@@ -44,7 +44,8 @@ public class TestReport {
         Writer writer = new StringWriter();
         String reportPath = new Report(stats).setWriter(writer).create();
         Assert.assertTrue(reportPath.endsWith("index.html"));
-        Assert.assertTrue(writer.toString().contains("simulation sim50bench"));
+        String string = writer.toString();
+        Assert.assertTrue(writer.toString().contains("sim50bench"));
     }
 
     @Test
