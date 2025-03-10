@@ -100,6 +100,34 @@
       margin-bottom: 30px;
     }
     
+    .chart-metrics-container {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    
+    .chart-container {
+      flex: 1 1 600px;
+    }
+    
+    .metrics-container {
+      flex: 1 1 300px;
+      align-self: center;
+    }
+    
+    .metrics-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .metrics-table th, .metrics-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #ddd;
+      font-size: 14px;
+    }
+    
     .monitoring-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -154,6 +182,10 @@
     @media (max-width: 768px) {
       .monitoring-grid {
         grid-template-columns: 1fr;
+      }
+      
+      .chart-metrics-container {
+        flex-direction: column;
       }
     }
   </style>
@@ -246,7 +278,67 @@
   {{#getDiffRequests}}
   <div class="card">
     <h2 class="section-title">{{refR.request}}</h2>
-    <div class="chart-container" id="response{{refR.indice}}Div"></div>
+    <div class="chart-metrics-container">
+      <div class="chart-container" id="response{{refR.indice}}Div"></div>
+      <div class="metrics-container">
+        <table class="metrics-table">
+          <tr>
+            <td></td>
+            <th>Reference</th>
+            <th>Challenger</th>
+            <th>Difference</th>
+          </tr>
+          <tr>
+            <th>Count</th>
+            <td>{{refR.count}}</td>
+            <td>{{challengerR.count}}</td>
+            <td></td>
+          </tr>
+          <tr>
+            <th>Min (ms)</th>
+            <td>{{refR.min}}</td>
+            <td>{{challengerR.min}}</td>
+            <td class="{{minClass}}">{{minPercent}}%</td>
+          </tr>
+          <tr>
+            <th>Average (ms)</th>
+            <td>{{refR.average}}</td>
+            <td>{{challengerR.average}}</td>
+            <td class="{{avgRClass}}">{{avgRPercent}}%</td>
+          </tr>
+          <tr>
+            <th>Max (ms)</th>
+            <td>{{refR.max}}</td>
+            <td>{{challengerR.max}}</td>
+            <td class="{{maxClass}}">{{maxPercent}}%</td>
+          </tr>
+          <tr>
+            <th>p50 (ms)</th>
+            <td>{{refR.p50}}</td>
+            <td>{{challengerR.p50}}</td>
+            <td class="{{p50Class}}">{{p50Percent}}%</td>
+          </tr>
+          <tr>
+            <th>p95 (ms)</th>
+            <td>{{refR.p95}}</td>
+            <td>{{challengerR.p95}}</td>
+            <td class="{{p95Class}}">{{p95Percent}}%</td>
+          </tr>
+          <tr>
+            <th>p99 (ms)</th>
+            <td>{{refR.p99}}</td>
+            <td>{{challengerR.p99}}</td>
+            <td class="{{p99Class}}">{{p99Percent}}%</td>
+          </tr>
+          <tr>
+            <th>Error Count</th>
+            <td>{{refR.errorCount}}</td>
+            <td>{{challengerR.errorCount}}</td>
+            <td class="{{errorClass}}">{{errorDiff}}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
   </div>
   {{/getDiffRequests}}
 
@@ -296,7 +388,7 @@ var dataAll = [
 
 var layoutAll = {
   height: 500,
-  width: 900,
+  width: '100%',
   yaxis: {
     title: 'Response Time (ms)',
     type: 'log',
@@ -382,7 +474,7 @@ var data{{refR.indice}} = [
 
 var layout{{refR.indice}} = {
   height: 500,
-  width: 900,
+  width: '100%',
   yaxis: {
     title: 'Response Time (ms)',
     type: 'log',
