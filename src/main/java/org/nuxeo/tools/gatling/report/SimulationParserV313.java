@@ -72,10 +72,6 @@ public class SimulationParserV313 extends SimulationParser {
     protected long simulationStart;
     protected String[] scenarioNames;
 
-    // Add these fields to track validation problems
-    private int invalidRecordCount = 0;
-    private static final int MAX_INVALID_RECORDS = 100;
-
     public SimulationParserV313(File file, Float apdexT) {
         super(file, apdexT);
         log.debug("Created parser for file: {} with apdexT={}", file.getAbsolutePath(), apdexT);
@@ -620,7 +616,6 @@ public class SimulationParserV313 extends SimulationParser {
      * 
      * @throws IOException
      */
-    @SuppressWarnings("unused")
     private void processGroupRecord(ByteBuffer buffer) throws IOException {
         // Format based on GroupMessageSerializer:
         // groupCount, [groups], startTimestamp, endTimestamp, cumulatedResponseTime,
@@ -645,7 +640,6 @@ public class SimulationParserV313 extends SimulationParser {
                     cumulatedResponseTime,
                     success == 1);
         }
-
         // We don't need to do anything with groups for now
     }
 
