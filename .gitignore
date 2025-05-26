@@ -1,4 +1,4 @@
-/*
+**
 
 !.gitignore
 !LICENCE.txt
@@ -8,5 +8,5 @@
 !pom.xml 
 !README.md
 !docs/**
-!src/**/**
-!src/test/resources/**
+!src/main/java/org/nuxeo/tools/gatling/report/**
+!src/test/resources/html/**
