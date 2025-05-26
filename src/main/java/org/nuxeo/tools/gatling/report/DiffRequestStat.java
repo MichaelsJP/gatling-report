@@ -43,7 +43,7 @@ public class DiffRequestStat {
     }
 
     public String minClass() {
-        if (challengerR.min < refR.min) {
+        if (challengerR.min <= refR.min) {
             return WIN;
         }
         return LOOSE;
@@ -57,7 +57,7 @@ public class DiffRequestStat {
     }
 
     public String avgRClass() {
-        if (challengerR.avg < refR.avg) {
+        if (challengerR.avg <= refR.avg) {
             return WIN;
         }
         return LOOSE;
@@ -71,7 +71,7 @@ public class DiffRequestStat {
     }
 
     public String maxClass() {
-        if (challengerR.max < refR.max) {
+        if (challengerR.max <= refR.max) {
             return WIN;
         }
         return LOOSE;
@@ -85,7 +85,7 @@ public class DiffRequestStat {
     }
 
     public String p50Class() {
-        if (challengerR.p50 < refR.p50) {
+        if (challengerR.p50 <= refR.p50) {
             return WIN;
         }
         return LOOSE;
@@ -99,7 +99,7 @@ public class DiffRequestStat {
     }
 
     public String p95Class() {
-        if (challengerR.p95 < refR.p95) {
+        if (challengerR.p95 <= refR.p95) {
             return WIN;
         }
         return LOOSE;
@@ -113,7 +113,7 @@ public class DiffRequestStat {
     }
 
     public String p99Class() {
-        if (challengerR.p99 < refR.p99) {
+        if (challengerR.p99 <= refR.p99) {
             return WIN;
         }
         return LOOSE;
@@ -124,7 +124,7 @@ public class DiffRequestStat {
     }
 
     public String errorClass() {
-        if (challengerR.errorCount < refR.errorCount) {
+        if (challengerR.errorCount <= refR.errorCount) {
             return WIN;
         }
         return LOOSE;

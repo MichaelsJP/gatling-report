@@ -67,7 +67,7 @@ public class DiffContext {
     }
 
     public String avgClass() {
-        if (challenger.simStat.avg < ref.simStat.avg) {
+        if (challenger.simStat.avg <= ref.simStat.avg) {
             return WIN;
         }
         return LOOSE;
@@ -90,7 +90,7 @@ public class DiffContext {
     }
 
     public String durationClass() {
-        if (challenger.simStat.duration < ref.simStat.duration) {
+        if (challenger.simStat.duration <= ref.simStat.duration) {
             return WIN;
         }
         return LOOSE;
@@ -110,7 +110,7 @@ public class DiffContext {
     }
 
     public String errorCountClass() {
-        if (challenger.simStat.errorCount < ref.simStat.errorCount) {
+        if (challenger.simStat.errorCount <= ref.simStat.errorCount) {
             return WIN;
         }
         return LOOSE;
