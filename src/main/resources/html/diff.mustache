@@ -250,6 +250,12 @@
         <td class="{{avgClass}}">{{avgPercent}}%</td>
       </tr>
       <tr>
+        <th>Median/P50 Response Time (ms)</th>
+        <td>{{ref.simStat.p50}}</td>
+        <td>{{challenger.simStat.p50}}</td>
+        <td class="{{p50Class}}">{{p50Percent}}%</td>
+      </tr>
+      <tr>
         <th>Requests</th>
         <td>{{ref.simStat.count}}</td>
         <td>{{challenger.simStat.count}}</td>

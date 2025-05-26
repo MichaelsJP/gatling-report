@@ -138,6 +138,10 @@ public class RequestStat {
         return String.format(Locale.ENGLISH, "%.1f", avg);
     }
 
+    public String p50() {
+        return String.format(Locale.ENGLISH, "%.1f", (double) p50);
+    }
+
     public String boxpoints() {
         if (count < MAX_BOXPOINT) {
             return "'all'";

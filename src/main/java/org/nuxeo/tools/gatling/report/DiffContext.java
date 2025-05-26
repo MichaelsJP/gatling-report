@@ -73,6 +73,17 @@ public class DiffContext {
         return LOOSE;
     }
 
+    public String p50Percent() {
+        return String.format(LOCALE, FORMAT_PERCENT, (challenger.simStat.p50 * 100.0 / ref.simStat.p50) - 100.0);
+    }
+
+    public String p50Class() {
+        if (challenger.simStat.p50 <= ref.simStat.p50) {
+            return WIN;
+        }
+        return LOOSE;
+    }
+
     public String rpsPercent() {
         return String.format(LOCALE, FORMAT_PERCENT, (challenger.simStat.rps * 100.0 / ref.simStat.rps) - 100.0);
     }
