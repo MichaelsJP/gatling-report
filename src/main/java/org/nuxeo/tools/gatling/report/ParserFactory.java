@@ -28,6 +28,12 @@ import java.util.zip.GZIPInputStream;
 
 public class ParserFactory {
 
+    private static final String BINARY_FORMAT = "BINARY_FORMAT";
+
+    private ParserFactory() {
+        // Utility class - hide constructor
+    }
+
     public static SimulationParser getParser(File file, Float apdexT) throws IOException {
         return getVersionSpecificParser(file, apdexT);
     }
@@ -55,7 +61,7 @@ public class ParserFactory {
     }
 
     private static boolean isBinaryFormat(List<String> header) {
-        return !header.isEmpty() && "BINARY_FORMAT".equals(header.get(0));
+        return !header.isEmpty() && BINARY_FORMAT.equals(header.get(0));
     }
 
     private static SimulationParser createBinaryFormatParser(File file, Float apdexT, String version) {
@@ -108,7 +114,37 @@ public class ParserFactory {
     }
 
     protected static List<String> getHeaderLine(File file) throws IOException {
-        // First try reading as text format using SimulationReader
+        // First check if this might be a binary format file (Gatling 3.13+)
+        // by looking at the first byte
+        boolean mightBeBinary = false;
+        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+            if (raf.length() > 0) {
+                byte firstByte = raf.readByte();
+                // Binary files start with byte 0 (RUN_RECORD)
+                mightBeBinary = (firstByte == 0);
+            }
+        } catch (IOException e) {
+            // Ignore and try text format
+        }
+
+        if (mightBeBinary) {
+            // Try binary detection first for files that might be binary
+            String binaryVersion = extractBinaryVersion(file);
+            if (binaryVersion != null) {
+                List<String> binaryHeader = new ArrayList<>();
+                // Create a header that mimics the text format but indicates it's binary
+                // The version will be the actual version extracted from the file
+                binaryHeader.add(BINARY_FORMAT);
+                binaryHeader.add("SIMULATION");
+                binaryHeader.add("UNKNOWN"); // Simulation name (will be read by the parser)
+                binaryHeader.add("0"); // Start timestamp (will be read by the parser)
+                binaryHeader.add("RUN");
+                binaryHeader.add(binaryVersion); // Actual version number
+                return binaryHeader;
+            }
+        }
+
+        // Try reading as text format using SimulationReader
         try (SimulationReader reader = new SimulationReader(file)) {
             List<String> header = reader.readNext();
 
@@ -120,20 +156,23 @@ public class ParserFactory {
             // Failed to read as text format, might be binary
         }
 
-        // Check if this is a binary format file (Gatling 3.13+)
-        String binaryVersion = extractBinaryVersion(file);
-        if (binaryVersion != null) {
-            List<String> binaryHeader = new ArrayList<>();
-            // Create a header that mimics the text format but indicates it's binary
-            // The version will be the actual version extracted from the file
-            binaryHeader.add("BINARY_FORMAT");
-            binaryHeader.add("SIMULATION");
-            binaryHeader.add("UNKNOWN"); // Simulation name (will be read by the parser)
-            binaryHeader.add("0"); // Start timestamp (will be read by the parser)
-            binaryHeader.add("RUN");
-            binaryHeader.add(binaryVersion); // Actual version number
-            return binaryHeader;
+        // If text reading failed and we haven't tried binary yet, try it now
+        if (!mightBeBinary) {
+            String binaryVersion = extractBinaryVersion(file);
+            if (binaryVersion != null) {
+                List<String> binaryHeader = new ArrayList<>();
+                // Create a header that mimics the text format but indicates it's binary
+                // The version will be the actual version extracted from the file
+                binaryHeader.add(BINARY_FORMAT);
+                binaryHeader.add("SIMULATION");
+                binaryHeader.add("UNKNOWN"); // Simulation name (will be read by the parser)
+                binaryHeader.add("0"); // Start timestamp (will be read by the parser)
+                binaryHeader.add("RUN");
+                binaryHeader.add(binaryVersion); // Actual version number
+                return binaryHeader;
+            }
         }
+
         // If we reach here, we couldn't identify the file format
         throw new IOException("Unable to determine format of simulation log: " + file.getAbsolutePath());
     }
