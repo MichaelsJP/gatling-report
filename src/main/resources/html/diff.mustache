@@ -235,7 +235,7 @@
         <th>Duration (s)</th>
         <td>{{ref.simStat.duration}}</td>
         <td>{{challenger.simStat.getDuration}}</td>
-        <td></td>
+        <td class="{{durationClass}}">{{durationDiff}}s</td>
       </tr>
       <tr>
         <th>Throughput (req/s)</th>
@@ -253,19 +253,19 @@
         <th>Requests</th>
         <td>{{ref.simStat.count}}</td>
         <td>{{challenger.simStat.count}}</td>
-        <td></td>
+        <td class="{{requestCountClass}}">{{requestCountDiff}}%</td>
       </tr>
       <tr>
         <th>Error(s)</th>
         <td>{{ref.simStat.errorCount}}</td>
         <td>{{challenger.simStat.errorCount}}</td>
-        <td></td>
+        <td class="{{errorCountClass}}">{{errorCountDiff}}</td>
       </tr>
       <tr>
         <th>Max Concurrent Users</th>
         <td>{{ref.simStat.maxUsers}}</td>
         <td>{{challenger.simStat.maxUsers}}</td>
-        <td></td>
+        <td class="{{maxUsersClass}}">{{maxUsersDiff}}%</td>
       </tr>
     </table>
   </div>
@@ -292,7 +292,7 @@
             <th>Count</th>
             <td>{{refR.count}}</td>
             <td>{{challengerR.count}}</td>
-            <td></td>
+            <td class="{{countClass}}">{{countDiff}}%</td>
           </tr>
           <tr>
             <th>Min (ms)</th>
